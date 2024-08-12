@@ -55,7 +55,7 @@ export class Decoder {
    * Note: If `readData` is emitted, it _must_ be called before the next iteration
    * Otherwise an error is thrown
    */
-  async * emitFrames (): AsyncGenerator<{ header: FrameHeader, readData?(): Promise<Uint8ArrayList> }> {
+  async * emitFrames (): AsyncGenerator<{ header: FrameHeader, data?: Uint8ArrayList }> {
     for await (const chunk of this.source) {
       this.buffer.append(chunk)
 
@@ -74,7 +74,7 @@ export class Decoder {
           this.frameInProgress = true
           yield {
             header,
-            readData: this.readBytes.bind(this, length)
+            data: await this.readBytes(length)
           }
         } else {
           yield { header }

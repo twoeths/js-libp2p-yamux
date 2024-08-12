@@ -132,7 +132,7 @@ export class YamuxMuxer implements StreamMuxer {
           this.closeController.signal.addEventListener('abort', shutDownListener)
 
           for await (const frame of decoder.emitFrames()) {
-            await this.handleFrame(frame.header, frame.readData)
+            await this.handleFrame(frame.header, frame.data)
           }
         } finally {
           this.closeController.signal.removeEventListener('abort', shutDownListener)
@@ -412,7 +412,7 @@ export class YamuxMuxer implements StreamMuxer {
     }
   }
 
-  private async handleFrame (header: FrameHeader, readData?: () => Promise<Uint8ArrayList>): Promise<void> {
+  private async handleFrame (header: FrameHeader, data?: Uint8ArrayList): Promise<void> {
     const {
       streamID,
       type,
@@ -434,7 +434,7 @@ export class YamuxMuxer implements StreamMuxer {
       switch (header.type) {
         case FrameType.Data:
         case FrameType.WindowUpdate:
-        { await this.handleStreamMessage(header, readData); return }
+        { await this.handleStreamMessage(header, data); return }
         default:
           // Invalid state
           throw new CodeError('Invalid frame type', ERR_INVALID_FRAME, { header })
@@ -483,7 +483,7 @@ export class YamuxMuxer implements StreamMuxer {
     this._closeMuxer()
   }
 
-  private async handleStreamMessage (header: FrameHeader, readData?: () => Promise<Uint8ArrayList>): Promise<void> {
+  private async handleStreamMessage (header: FrameHeader, data?: Uint8ArrayList): Promise<void> {
     const { streamID, flag, type } = header
 
     if ((flag & Flag.SYN) === Flag.SYN) {
@@ -494,10 +494,10 @@ export class YamuxMuxer implements StreamMuxer {
     if (stream === undefined) {
       if (type === FrameType.Data) {
         this.log?.('discarding data for stream id=%s', streamID)
-        if (readData === undefined) {
-          throw new Error('unreachable')
-        }
-        await readData()
+        // if (data === undefined) {
+        //   throw new Error('unreachable')
+        // }
+        // await readData()
       } else {
         this.log?.('frame for missing stream id=%s', streamID)
       }
@@ -509,11 +509,11 @@ export class YamuxMuxer implements StreamMuxer {
         stream.handleWindowUpdate(header); return
       }
       case FrameType.Data: {
-        if (readData === undefined) {
+        if (data === undefined) {
           throw new Error('unreachable')
         }
 
-        await stream.handleData(header, readData); return
+        await stream.handleData(header, data); return
       }
       default:
         throw new Error('unreachable')

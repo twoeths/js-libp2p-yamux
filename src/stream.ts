@@ -213,7 +213,7 @@ export class YamuxStream extends AbstractStream {
   /**
    * handleData is called when the stream receives a data frame
    */
-  async handleData (header: FrameHeader, readData: () => Promise<Uint8ArrayList>): Promise<void> {
+  async handleData (header: FrameHeader, data: Uint8ArrayList): Promise<void> {
     this.log?.trace('stream received data id=%s', this._id)
     this.processFlags(header.flag)
 
@@ -222,7 +222,6 @@ export class YamuxStream extends AbstractStream {
       throw new CodeError('receive window exceeded', ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
     }
 
-    const data = await readData()
     this.recvWindowCapacity -= header.length
 
     this.sourcePush(data)
